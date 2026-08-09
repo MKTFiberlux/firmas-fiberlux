@@ -1,0 +1,1053 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Diseñador de Firmas — Fiberlux [ADMIN]</title>
+<meta name="description" content="Editor de precisión para las plantillas de firma de correo del Grupo Fiberlux.">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;700&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="shared/firmas-core.css">
+<style>
+  @font-face { font-family: 'Gilmer'; src: url('assets/fonts/Gilmer-Regular.woff2') format('woff2'); font-weight: 400; font-display: swap; }
+  @font-face { font-family: 'Gilmer'; src: url('assets/fonts/Gilmer-Medium.woff2') format('woff2'); font-weight: 500; font-display: swap; }
+  @font-face { font-family: 'Gilmer'; src: url('assets/fonts/Gilmer-Bold.woff2') format('woff2'); font-weight: 700; font-display: swap; }
+
+  html, body { height: 100%; }
+  .app-shell { display: flex; height: 100vh; overflow: hidden; }
+  .app-sidebar { width: 400px; flex-shrink: 0; background: var(--bg-panel); border-right: 1px solid var(--border-soft); overflow-y: auto; }
+  .app-main { flex: 1; overflow: auto; background: var(--bg-canvas-area); position: relative; }
+
+  .ruler-corner { position: sticky; top: 0; left: 0; width: 28px; height: 22px; background: var(--bg-panel-2); border-right: 1px solid var(--border-soft); border-bottom: 1px solid var(--border-soft); z-index: 5; }
+  .ruler-h { position: sticky; top: 0; height: 22px; background: var(--bg-panel-2); border-bottom: 1px solid var(--border-soft); z-index: 4; overflow: hidden; }
+  .ruler-v { position: sticky; left: 0; width: 28px; background: var(--bg-panel-2); border-right: 1px solid var(--border-soft); z-index: 4; overflow: hidden; flex-shrink: 0; }
+  .tick-major { position: absolute; border-left: 1px solid #6b6b6b; font-size: 9px; color: var(--text-muted); padding-left: 2px; }
+  .tick-minor { position: absolute; border-left: 1px solid #454545; }
+  .ruler-v .tick-major { border-left: none; border-top: 1px solid #6b6b6b; writing-mode: vertical-rl; padding-left: 0; padding-top: 2px; }
+  .ruler-v .tick-minor { border-left: none; border-top: 1px solid #454545; }
+
+  .canvas-zoom-wrap { position: relative; display: inline-block; }
+  .drag-overlay { position: absolute; top: 0; left: 0; }
+  .drag-box {
+    position: absolute; border: 1.5px dashed rgba(255,255,255,.35); border-radius: 3px; cursor: grab;
+    display: flex; align-items: flex-start; box-sizing: content-box;
+  }
+  .drag-box:hover { border-color: rgba(255,255,255,.75); background: rgba(255,255,255,.05); }
+  .drag-box.selected { border: 1.5px solid var(--acento); background: color-mix(in srgb, var(--acento) 12%, transparent); }
+  .drag-box:active { cursor: grabbing; }
+  .drag-box:focus-visible { outline: 2px solid var(--acento); outline-offset: 2px; }
+  .drag-chip {
+    position: absolute; top: -20px; left: -1.5px; background: var(--acento); color: #fff; font-size: 9.5px;
+    font-weight: 700; padding: 2px 6px; border-radius: 4px 4px 4px 0; white-space: nowrap; pointer-events: none;
+    opacity: 0; transition: opacity .1s ease;
+  }
+  .drag-box:hover .drag-chip, .drag-box.selected .drag-chip { opacity: 1; }
+
+  .guide-line { position: absolute; background: #22d3ee; z-index: 20; pointer-events: none; }
+  .guide-v { width: 1px; top: 0; }
+  .guide-h { height: 1px; left: 0; }
+
+  .zoom-bar { display: flex; align-items: center; gap: 6px; background: var(--bg-panel-2); border: 1px solid var(--border-soft); border-radius: 999px; padding: 4px 6px; }
+  .zoom-bar button { width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: var(--text); font-weight: 700; }
+  .zoom-bar button:hover { background: var(--bg-field); }
+  .zoom-readout { font-size: .72rem; font-variant-numeric: tabular-nums; color: var(--text-muted); width: 40px; text-align: center; }
+
+  .font-sample { font-size: 13px; padding: 6px 8px; background: var(--bg-field); border: 1px solid var(--border); border-radius: var(--radius-sm); margin-top: 6px; }
+  .warn-chip { font-size: .68rem; color: #fbbf24; background: rgba(217,119,6,.15); border: 1px solid rgba(217,119,6,.4); padding: 2px 6px; border-radius: 5px; display: inline-flex; align-items: center; gap: 4px; margin-top: 6px; }
+
+  .fila-card { background: var(--bg-field); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 10px; margin-bottom: 8px; }
+  .fila-card.inactiva { opacity: .5; }
+  .fila-head { display: flex; align-items: center; gap: 6px; margin-bottom: 8px; }
+  .fila-icon-preview { width: 28px; height: 28px; border-radius: 5px; background: var(--bg-panel-2); border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; overflow: hidden; flex-shrink: 0; }
+  .fila-icon-preview img { width: 100%; height: 100%; object-fit: contain; }
+  .fila-reorder { display: flex; flex-direction: column; gap: 1px; }
+  .fila-reorder button { width: 18px; height: 14px; font-size: 9px; line-height: 1; background: var(--bg-panel-2); border: 1px solid var(--border); color: var(--text-muted); border-radius: 2px; }
+  .fila-reorder button:hover { color: #fff; }
+  .mini-field { font-size: .7rem; padding: 5px 7px; }
+</style>
+</head>
+<body>
+
+<div class="app-shell">
+  <!-- ═══════════ SIDEBAR ═══════════ -->
+  <aside class="app-sidebar">
+    <div class="p-4 sticky top-0 bg-[var(--bg-panel)] z-10 border-b border-[var(--border-soft)]">
+      <div class="flex items-center justify-between">
+        <div>
+          <h1 class="text-sm font-bold text-white leading-tight">Diseñador de Firmas <span style="color:var(--acento)">Fiberlux</span></h1>
+          <p class="text-[10px] text-red-400 font-bold uppercase tracking-wide mt-0.5">Modo administrador</p>
+        </div>
+        <div class="flex gap-1">
+          <button onclick="Historia.undo()" id="btn-undo" class="btn btn-ghost btn-icon" title="Deshacer (Ctrl+Z)">↶</button>
+          <button onclick="Historia.redo()" id="btn-redo" class="btn btn-ghost btn-icon" title="Rehacer (Ctrl+Shift+Z)">↷</button>
+        </div>
+      </div>
+      <p class="field-hint mt-2">Los cambios quedan locales hasta que publiques el JSON.</p>
+    </div>
+
+    <div class="p-4 space-y-4">
+      <!-- Selector de marca -->
+      <div>
+        <label class="field-label flex items-center justify-between">Empresa a editar
+          <span class="flex gap-1">
+            <button onclick="crearEmpresa()" class="btn btn-ghost btn-sm" title="Nueva empresa, empieza en blanco">+ Nueva</button>
+            <button onclick="eliminarEmpresa()" class="btn btn-danger-ghost btn-sm" title="Eliminar empresa">🗑</button>
+          </span>
+        </label>
+        <div id="brand-picker" class="brand-picker" role="radiogroup" aria-label="Empresa a editar"></div>
+      </div>
+
+      <!-- Fondo y estilo global -->
+      <div class="panel">
+        <h4 class="panel-title">🖼 Fondo y estilo</h4>
+        <label class="field-label">Imagen de fondo (incluye el logo)</label>
+        <div class="flex gap-2 mb-3">
+          <input type="text" id="dev-img-normal" class="field" placeholder="ruta o URL — vacío = fondo liso" oninput="updCfgBase()">
+          <button onclick="document.getElementById('file-normal').click()" class="btn btn-primary btn-sm">Subir</button>
+          <input type="file" id="file-normal" accept="image/png, image/jpeg" class="hidden" onchange="cargarFondoLocal(event)">
+        </div>
+        <p class="field-hint -mt-2 mb-3">El logo vive dentro de esta imagen — la herramienta no lo genera ni lo modifica.</p>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="field-label">Color del texto</label>
+            <input type="color" id="dev-color" class="w-full h-9 rounded cursor-pointer border border-[var(--border)] bg-transparent" oninput="updCfgBase()">
+          </div>
+          <div>
+            <label class="field-label">Acento de la herramienta</label>
+            <input type="color" id="dev-accent" class="w-full h-9 rounded cursor-pointer border border-[var(--border)] bg-transparent" oninput="updCfgBase()" title="Solo cambia el color del panel del editor, no la firma">
+          </div>
+        </div>
+        <label class="field-label mt-3">Tipografía de esta marca</label>
+        <input type="text" id="dev-font" class="field" placeholder="'Poppins', Arial, sans-serif" oninput="updCfgBase()">
+        <div id="font-warn" class="warn-chip hidden">⚠ Esta fuente no está cargada — ver assets/fonts/README.md</div>
+        <div class="font-sample" id="font-sample">Aa Bb Cc — vista previa de la tipografía</div>
+      </div>
+
+      <!-- Elemento tipográfico: nombre / apellido / cargo -->
+      <div class="panel">
+        <div class="flex justify-between items-center mb-3 border-b border-[var(--border-soft)] pb-2">
+          <select id="dev-elemento" class="field !w-auto !border-0 !bg-transparent font-bold text-white text-sm p-0" onchange="cargarInputsElemento()"></select>
+        </div>
+
+        <div class="space-y-3" id="dev-dinamico">
+          <div class="slider-row">
+            <label class="field-label flex justify-between">Posición X<span class="text-[var(--acento)] font-bold normal-case"><input class="num-field" id="num-x" oninput="updSync('x', this.value, false)" onchange="updSync('x', this.value, true)"></span></label>
+            <input type="range" id="sl-x" min="-100" max="1200" step="1" oninput="updSync('x', this.value, false)" onchange="updSync('x', this.value, true)">
+          </div>
+          <div class="slider-row">
+            <label class="field-label flex justify-between">Posición Y<span class="text-[var(--acento)] font-bold normal-case"><input class="num-field" id="num-y" oninput="updSync('y', this.value, false)" onchange="updSync('y', this.value, true)"></span></label>
+            <input type="range" id="sl-y" min="-100" max="800" step="1" oninput="updSync('y', this.value, false)" onchange="updSync('y', this.value, true)">
+          </div>
+          <div class="slider-row">
+            <label class="field-label flex justify-between">Tamaño letra<span class="text-[var(--acento)] font-bold normal-case"><input class="num-field" id="num-size" oninput="updSync('size', this.value, false)" onchange="updSync('size', this.value, true)"></span></label>
+            <input type="range" id="sl-size" min="8" max="150" step="1" oninput="updSync('size', this.value, false)" onchange="updSync('size', this.value, true)">
+          </div>
+          <div class="slider-row">
+            <label class="field-label flex justify-between">Espaciado letras<span class="text-[var(--acento)] font-bold normal-case"><input class="num-field" id="num-tracking" oninput="updSync('tracking', this.value, false)" onchange="updSync('tracking', this.value, true)"></span></label>
+            <input type="range" id="sl-tracking" min="-10" max="50" step="0.5" oninput="updSync('tracking', this.value, false)" onchange="updSync('tracking', this.value, true)">
+          </div>
+          <div class="grid grid-cols-2 gap-3">
+            <div class="slider-row">
+              <label class="field-label flex justify-between">Interlineado<span class="text-[var(--acento)] font-bold normal-case"><input class="num-field" id="num-leading" oninput="updSync('leading', this.value, false)" onchange="updSync('leading', this.value, true)"></span></label>
+              <input type="range" id="sl-leading" min="10" max="100" step="1" oninput="updSync('leading', this.value, false)" onchange="updSync('leading', this.value, true)">
+            </div>
+            <div class="slider-row">
+              <label class="field-label flex justify-between">Corte texto<span class="text-[var(--acento)] font-bold normal-case"><input class="num-field" id="num-limit" oninput="updSync('limit', this.value, false)" onchange="updSync('limit', this.value, true)"></span></label>
+              <input type="range" id="sl-limit" min="5" max="80" step="1" oninput="updSync('limit', this.value, false)" onchange="updSync('limit', this.value, true)">
+            </div>
+          </div>
+          <div class="grid grid-cols-2 gap-3 items-center">
+            <div>
+              <label class="field-label">Grosor</label>
+              <select id="val-weight" class="field" onchange="updValDinamico()">
+                <option value="400">Regular</option><option value="500">Medium</option><option value="700">Bold</option>
+              </select>
+            </div>
+            <label class="flex items-center gap-2 mt-5 cursor-pointer text-xs text-slate-300 font-medium">
+              <input type="checkbox" id="val-uselimit" onchange="updValDinamico()"> Aplicar límite
+            </label>
+          </div>
+        </div>
+
+        <div class="flex gap-2 mt-4 pt-3 border-t border-[var(--border-soft)]">
+          <button onclick="restablecerElemento()" class="btn btn-ghost btn-sm flex-1">↺ Restablecer</button>
+          <div class="relative flex-1">
+            <button onclick="toggleCopiarMenu()" class="btn btn-ghost btn-sm w-full">⧉ Copiar a...</button>
+            <div id="copiar-menu" class="hidden absolute right-0 mt-1 bg-[var(--bg-panel-2)] border border-[var(--border)] rounded shadow-xl z-30 min-w-[160px] py-1"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Bloque de contacto: filas dinámicas -->
+      <div class="panel">
+        <h4 class="panel-title">📇 Bloque de contacto</h4>
+        <p class="field-hint mb-3">Cada fila aparece solo si tiene texto — agrega celular y teléfono a la vez, quita lo que no uses, y deja que una dirección larga salte de línea sola.</p>
+
+        <div class="grid grid-cols-2 gap-3 mb-2">
+          <div class="slider-row">
+            <label class="field-label flex justify-between">Posición X<span class="text-[var(--acento)] font-bold normal-case"><input class="num-field" id="anchor-num-x" oninput="updAnchor('pos0', this.value)" onchange="Historia.push()"></span></label>
+            <input type="range" id="anchor-sl-x" min="-100" max="1200" step="1" oninput="updAnchor('pos0', this.value)" onchange="Historia.push()">
+          </div>
+          <div class="slider-row">
+            <label class="field-label flex justify-between">Posición Y<span class="text-[var(--acento)] font-bold normal-case"><input class="num-field" id="anchor-num-y" oninput="updAnchor('pos1', this.value)" onchange="Historia.push()"></span></label>
+            <input type="range" id="anchor-sl-y" min="-100" max="800" step="1" oninput="updAnchor('pos1', this.value)" onchange="Historia.push()">
+          </div>
+        </div>
+        <div class="grid grid-cols-2 gap-3 mb-2">
+          <div class="slider-row">
+            <label class="field-label flex justify-between">Tamaño<span class="text-[var(--acento)] font-bold normal-case"><input class="num-field" id="anchor-num-size" oninput="updAnchor('size', this.value)" onchange="Historia.push()"></span></label>
+            <input type="range" id="anchor-sl-size" min="8" max="60" step="1" oninput="updAnchor('size', this.value)" onchange="Historia.push()">
+          </div>
+          <div class="slider-row">
+            <label class="field-label flex justify-between">Entre filas<span class="text-[var(--acento)] font-bold normal-case"><input class="num-field" id="anchor-num-leading" oninput="updAnchor('leading', this.value)" onchange="Historia.push()"></span></label>
+            <input type="range" id="anchor-sl-leading" min="8" max="80" step="1" oninput="updAnchor('leading', this.value)" onchange="Historia.push()">
+          </div>
+        </div>
+        <div class="grid grid-cols-2 gap-3 mb-2">
+          <div class="slider-row">
+            <label class="field-label flex justify-between">Entre líneas (fila envuelta)<span class="text-[var(--acento)] font-bold normal-case"><input class="num-field" id="anchor-num-lh" oninput="updAnchor('line_height', this.value)" onchange="Historia.push()"></span></label>
+            <input type="range" id="anchor-sl-lh" min="8" max="60" step="1" oninput="updAnchor('line_height', this.value)" onchange="Historia.push()">
+          </div>
+          <div class="slider-row">
+            <label class="field-label flex justify-between">Tamaño ícono<span class="text-[var(--acento)] font-bold normal-case"><input class="num-field" id="anchor-num-icon" oninput="updAnchor('icon_size', this.value)" onchange="Historia.push()"></span></label>
+            <input type="range" id="anchor-sl-icon" min="6" max="60" step="1" oninput="updAnchor('icon_size', this.value)" onchange="Historia.push()">
+          </div>
+        </div>
+        <div class="slider-row mb-3">
+          <label class="field-label flex justify-between">Espacio ícono↔texto<span class="text-[var(--acento)] font-bold normal-case"><input class="num-field" id="anchor-num-gap" oninput="updAnchor('gap_icono_texto', this.value)" onchange="Historia.push()"></span></label>
+          <input type="range" id="anchor-sl-gap" min="0" max="40" step="1" oninput="updAnchor('gap_icono_texto', this.value)" onchange="Historia.push()">
+        </div>
+
+        <div id="filas-lista" class="mt-3 pt-3 border-t border-[var(--border-soft)]"></div>
+
+        <div class="relative">
+          <button onclick="toggleAgregarFilaMenu()" class="btn btn-primary btn-sm w-full justify-center">+ Agregar fila</button>
+          <div id="agregar-fila-menu" class="hidden absolute left-0 right-0 mt-1 bg-[var(--bg-panel-2)] border border-[var(--border)] rounded shadow-xl z-30 py-1"></div>
+        </div>
+      </div>
+
+      <!-- Datos de prueba -->
+      <div class="panel">
+        <h4 class="panel-title">👤 Datos de prueba</h4>
+        <div class="space-y-2">
+          <div><label class="field-label">Nombre</label><input type="text" id="pr-nom1" class="field" value="Jocelyn" oninput="render()"></div>
+          <div><label class="field-label">Segundo nombre</label><input type="text" id="pr-nom2" class="field" value="Andreina" oninput="render()"></div>
+          <div><label class="field-label">Apellido paterno</label><input type="text" id="pr-pat" class="field" value="Chong" oninput="render()"></div>
+          <div><label class="field-label">Apellido materno</label><input type="text" id="pr-mat" class="field" value="Navarro" oninput="render()"></div>
+          <div><label class="field-label">Cargo</label><input type="text" id="pr-cargo" class="field" value="Creadora de Contenido y Gerente de Marketing Digital" oninput="render()"></div>
+        </div>
+        <div id="pr-campos-dinamicos" class="space-y-2 mt-2 pt-2 border-t border-[var(--border-soft)]"></div>
+        <p class="field-hint mt-2">Deja un campo vacío para probar cómo se ve el bloque sin esa fila (sin dejar huecos).</p>
+      </div>
+
+      <div class="panel">
+        <h4 class="panel-title">🧭 Ayudas visuales</h4>
+        <label class="flex items-center gap-2 cursor-pointer text-xs text-slate-300 font-medium mb-2">
+          <input type="checkbox" id="chk-guides" checked onchange="render()"> Guías de alineación al arrastrar
+        </label>
+        <label class="flex items-center gap-2 cursor-pointer text-xs text-slate-300 font-medium">
+          <input type="checkbox" id="chk-rulers" checked onchange="render()"> Reglas (px)
+        </label>
+        <p class="field-hint mt-2">Tip: con una caja seleccionada, usa las flechas del teclado para mover 1px (Shift+flecha = 10px).</p>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ═══════════ CANVAS / EDITOR ═══════════ -->
+  <main class="app-main">
+    <div class="sticky top-0 z-30 flex items-center justify-between gap-3 px-4 py-2.5 bg-[var(--bg-panel)] border-b border-[var(--border-soft)]">
+      <div class="flex items-center gap-3">
+        <div class="zoom-bar">
+          <button onclick="setZoom(zoom - 0.25)" title="Alejar">−</button>
+          <span class="zoom-readout" id="zoom-readout">100%</span>
+          <button onclick="setZoom(zoom + 0.25)" title="Acercar">+</button>
+        </div>
+        <div class="flex gap-1">
+          <button onclick="setZoom(1)" class="btn btn-ghost btn-sm">100%</button>
+          <button onclick="setZoom(2)" class="btn btn-ghost btn-sm">200%</button>
+          <button onclick="setZoom(4)" class="btn btn-ghost btn-sm">400%</button>
+        </div>
+        <span id="canvas-dims" class="text-xs text-[var(--text-faint)] font-mono"></span>
+      </div>
+      <div class="flex gap-2">
+        <button onclick="importarConfig()" class="btn btn-ghost btn-sm">📂 Importar JSON</button>
+        <button onclick="guardarLocal()" class="btn btn-ghost btn-sm">💾 Guardar local</button>
+        <button onclick="document.getElementById('modal-publicar').classList.remove('hidden')" class="btn btn-primary btn-sm">🚀 Publicar</button>
+      </div>
+      <input type="file" id="input-importar" accept=".json" class="hidden" onchange="leerArchivoImportado(event)">
+    </div>
+
+    <div class="p-8 flex justify-center">
+      <div id="ruler-grid" class="inline-grid" style="grid-template-columns: 28px auto;">
+        <div class="ruler-corner"></div>
+        <div class="ruler-h" id="ruler-h"></div>
+        <div class="ruler-v" id="ruler-v"></div>
+        <div class="canvas-zoom-wrap" id="canvas-wrap">
+          <canvas id="dev-canvas"></canvas>
+          <div class="drag-overlay" id="drag-overlay"></div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- Modal publicar -->
+<div id="modal-publicar" class="hidden modal-backdrop" onclick="if(event.target===this) this.classList.add('hidden')">
+  <div class="modal-card !max-w-lg">
+    <h3 class="text-lg font-bold mb-1">Publicar configuración</h3>
+    <p class="text-sm text-[var(--text-muted)] mb-4">Sube <code class="bg-black/40 px-1 rounded text-[var(--acento)]">config_firmas.json</code> y cualquier imagen o ícono nuevo directo a GitHub — sin descargar ni resubir nada a mano.</p>
+
+    <div id="gh-status" class="text-xs mb-3"></div>
+
+    <details id="gh-settings" class="mb-4 border border-[var(--border-soft)] rounded-lg p-3">
+      <summary class="cursor-pointer text-xs font-bold text-[var(--text-muted)] uppercase tracking-wide">⚙ Configuración de GitHub</summary>
+      <div class="mt-3 space-y-2">
+        <div class="grid grid-cols-2 gap-2">
+          <div><label class="field-label !text-[9px]">Owner / organización</label><input type="text" id="gh-owner" class="field mini-field" placeholder="MKTFiberlux"></div>
+          <div><label class="field-label !text-[9px]">Repositorio</label><input type="text" id="gh-repo" class="field mini-field" placeholder="firmas-fiberlux"></div>
+        </div>
+        <div><label class="field-label !text-[9px]">Rama</label><input type="text" id="gh-branch" class="field mini-field" placeholder="main"></div>
+        <div>
+          <label class="field-label !text-[9px]">Token (fine-grained, permiso Contents: Read & write, limitado a este repo)</label>
+          <input type="password" id="gh-token" class="field mini-field" placeholder="github_pat_...">
+          <p class="field-hint mt-1">Se guarda solo en este navegador (localStorage) y se usa únicamente para hablar con la API de GitHub. Créalo en github.com → Settings → Developer settings → Fine-grained tokens.</p>
+        </div>
+        <div class="flex gap-2 pt-1">
+          <button onclick="guardarConfigGitHub()" class="btn btn-ghost btn-sm flex-1">Guardar</button>
+          <button onclick="probarConexionGitHub()" class="btn btn-ghost btn-sm flex-1">Probar conexión</button>
+        </div>
+      </div>
+    </details>
+
+    <div id="gh-progreso" class="hidden text-xs text-slate-300 space-y-1 mb-4 max-h-32 overflow-y-auto bg-black/30 rounded p-2"></div>
+
+    <div class="flex gap-2">
+      <button onclick="publicarEnGitHub()" id="btn-publicar-gh" class="btn btn-primary flex-1 justify-center">🚀 Publicar en GitHub</button>
+      <button onclick="document.getElementById('modal-publicar').classList.add('hidden')" class="btn btn-ghost">Cerrar</button>
+    </div>
+    <button onclick="FirmasCore.exportConfigFile(config, 'config_firmas.json')" class="field-hint underline mt-3 block text-left">o descarga el JSON manualmente</button>
+  </div>
+</div>
+
+<script src="shared/firmas-core.js"></script>
+<script>
+"use strict";
+
+let config = {};
+let empresaActual = null;
+let zoom = 1;
+let currentLayout = null;
+let dragging = null;
+
+// ── Historial (undo/redo) ──────────────────────────────────────────
+const Historia = (() => {
+  let stack = []; let idx = -1;
+  function push() {
+    stack = stack.slice(0, idx + 1);
+    stack.push(FirmasCore.deepClone(config));
+    if (stack.length > 80) stack.shift();
+    idx = stack.length - 1;
+    syncButtons();
+  }
+  function undo() {
+    if (idx <= 0) return;
+    idx--; config = FirmasCore.deepClone(stack[idx]);
+    llenarCombosEmpresa(true); syncButtons();
+  }
+  function redo() {
+    if (idx >= stack.length - 1) return;
+    idx++; config = FirmasCore.deepClone(stack[idx]);
+    llenarCombosEmpresa(true); syncButtons();
+  }
+  function syncButtons() {
+    document.getElementById('btn-undo').disabled = idx <= 0;
+    document.getElementById('btn-redo').disabled = idx >= stack.length - 1;
+  }
+  return { push, undo, redo, syncButtons };
+})();
+
+document.addEventListener('keydown', (e) => {
+  if (document.activeElement && ['INPUT', 'SELECT', 'TEXTAREA'].includes(document.activeElement.tagName) && !document.activeElement.classList.contains('drag-box')) {
+    if (!((e.ctrlKey || e.metaKey) && ['z', 'y'].includes(e.key.toLowerCase()))) return;
+  }
+  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z' && !e.shiftKey) { e.preventDefault(); Historia.undo(); }
+  if ((e.ctrlKey || e.metaKey) && (e.key.toLowerCase() === 'y' || (e.key.toLowerCase() === 'z' && e.shiftKey))) { e.preventDefault(); Historia.redo(); }
+});
+
+window.onload = async () => {
+  await document.fonts.ready.catch(() => {});
+  await cargarConfig();
+};
+
+async function cargarConfig() {
+  const guardado = localStorage.getItem('designer_config_v3');
+  if (guardado) {
+    config = JSON.parse(guardado);
+    showToast('Sesión local restaurada. Usa "Importar JSON" para partir de lo publicado.', 'info');
+  } else {
+    const remoto = await FirmasCore.fetchDefaultConfig('./config_firmas.json');
+    if (remoto) { config = remoto; showToast('Configuración cargada desde config_firmas.json.', 'info'); }
+    else { config = { "Nueva Empresa": FirmasCore.deepClone(FirmasCore.TEMPLATE_EMP) }; showToast('No se encontró config_firmas.json. Partiendo de plantilla en blanco.', 'error'); }
+  }
+  poblarSelectorElemento();
+  llenarCombosEmpresa();
+  Historia.push();
+}
+
+function poblarSelectorElemento() {
+  const sel = document.getElementById('dev-elemento');
+  sel.innerHTML = Object.entries(FirmasCore.ELEMENT_LABELS).map(([k, v]) => `<option value="${k}">${v}</option>`).join('');
+}
+
+function guardarLocal() {
+  localStorage.setItem('designer_config_v3', JSON.stringify(config));
+  showToast('Guardado localmente en tu navegador.');
+}
+
+function importarConfig() { document.getElementById('input-importar').click(); }
+function leerArchivoImportado(e) {
+  const f = e.target.files[0]; if (!f) return;
+  const r = new FileReader();
+  r.onload = (evt) => {
+    try {
+      const js = JSON.parse(evt.target.result);
+      if (typeof js === 'object') {
+        config = js; FirmasCore.clearImageCache();
+        guardarLocal(); llenarCombosEmpresa(); Historia.push();
+        showToast('JSON importado correctamente.');
+      }
+    } catch { showToast('Archivo JSON inválido.', 'error'); }
+  };
+  r.readAsText(f); e.target.value = '';
+}
+
+// ── Selector de marca ────────────────────────────────────────────
+function llenarCombosEmpresa(preservarSeleccion) {
+  const cont = document.getElementById('brand-picker');
+  const nombres = Object.keys(config);
+  if (!preservarSeleccion || !config[empresaActual]) empresaActual = nombres.includes(empresaActual) ? empresaActual : nombres[0];
+
+  cont.innerHTML = nombres.map(emp => {
+    const c = config[emp];
+    const bg = c.plantilla ? `background-image:url('${c.plantilla}')` : `background:${c.color_texto === '#FFFFFF' ? '#333' : '#eee'}`;
+    const activo = emp === empresaActual;
+    return `<button type="button" class="brand-option" role="radio" aria-pressed="${activo}" aria-checked="${activo}" onclick="seleccionarEmpresa('${emp.replace(/'/g, "\\'")}')">
+      <span class="brand-swatch" style="${bg}"></span>${emp}
+    </button>`;
+  }).join('');
+
+  cargarDatosDisenador();
+}
+
+function seleccionarEmpresa(emp) { empresaActual = emp; llenarCombosEmpresa(true); }
+
+// ── Panel de la empresa activa ──────────────────────────────────────
+function cargarDatosDisenador() {
+  const c = config[empresaActual]; if (!c) return;
+  if (!c.contacto) c.contacto = { anchor: FirmasCore.deepClone(FirmasCore.CONTACT_ANCHOR_DEFAULT), filas: [] };
+
+  setAcento(c.accent_ui || '#6b7280');
+  document.getElementById('dev-img-normal').value = (c.plantilla || '').startsWith('data:image') ? '[Imagen cargada localmente]' : (c.plantilla || '');
+  document.getElementById('dev-color').value = c.color_texto || '#111111';
+  document.getElementById('dev-accent').value = c.accent_ui || '#6b7280';
+  document.getElementById('dev-font').value = c.font_family || "'Poppins', Arial, sans-serif";
+  actualizarMuestraFuente();
+  cargarInputsElemento();
+  cargarAnchorUI();
+  renderFilasUI();
+  renderCamposPruebaDinamicos();
+}
+
+function setAcento(hex) { document.documentElement.style.setProperty('--acento', hex); }
+
+function actualizarMuestraFuente() {
+  const val = document.getElementById('dev-font').value || "'Poppins', Arial, sans-serif";
+  const sample = document.getElementById('font-sample');
+  sample.style.fontFamily = val;
+  const warn = document.getElementById('font-warn');
+  const primerFuente = (val.split(',')[0] || '').replace(/['"]/g, '').trim();
+  const disponible = primerFuente.toLowerCase() === 'poppins' || primerFuente.toLowerCase() === 'arial' ||
+    (document.fonts && document.fonts.check ? document.fonts.check(`16px "${primerFuente}"`) : true);
+  warn.classList.toggle('hidden', disponible);
+}
+
+function updCfgBase() {
+  const c = config[empresaActual];
+  const vN = document.getElementById('dev-img-normal').value;
+  if (vN !== '[Imagen cargada localmente]') { c.plantilla = vN; FirmasCore.clearImageCache(); }
+  c.color_texto = document.getElementById('dev-color').value;
+  c.accent_ui = document.getElementById('dev-accent').value;
+  c.font_family = document.getElementById('dev-font').value;
+  setAcento(c.accent_ui);
+  actualizarMuestraFuente();
+  render();
+}
+['dev-img-normal', 'dev-font'].forEach(id => window.addEventListener('load', () => {
+  document.getElementById(id).addEventListener('change', () => Historia.push());
+}));
+window.addEventListener('load', () => {
+  document.getElementById('dev-color').addEventListener('change', () => Historia.push());
+  document.getElementById('dev-accent').addEventListener('change', () => Historia.push());
+});
+
+function cargarFondoLocal(e) {
+  const f = e.target.files[0]; if (!f) return;
+  const r = new FileReader();
+  r.onload = (ev) => {
+    config[empresaActual].plantilla = ev.target.result;
+    FirmasCore.clearImageCache();
+    document.getElementById('dev-img-normal').value = '[Imagen cargada localmente]';
+    render(); llenarCombosEmpresa(true); Historia.push();
+    e.target.value = '';
+  };
+  r.readAsDataURL(f);
+}
+
+function crearEmpresa() {
+  const n = prompt('Nombre de la nueva empresa:');
+  if (n && n.trim() && !config[n.trim()]) {
+    config[n.trim()] = FirmasCore.deepClone(FirmasCore.TEMPLATE_EMP);
+    empresaActual = n.trim();
+    llenarCombosEmpresa(true); Historia.push();
+    showToast('Empresa creada en blanco. Agrega filas de contacto cuando quieras.', 'info');
+  }
+}
+function eliminarEmpresa() {
+  if (Object.keys(config).length <= 1) { showToast('Debe quedar al menos una empresa.', 'error'); return; }
+  if (confirm(`¿Eliminar "${empresaActual}"? El cambio es solo local hasta que publiques.`)) {
+    delete config[empresaActual]; empresaActual = null;
+    llenarCombosEmpresa(); Historia.push();
+  }
+}
+
+// ── Panel del elemento tipográfico (nombre/apellido/cargo) ──────────
+function cargarInputsElemento() {
+  const c = config[empresaActual]; if (!c) return;
+  const elem = document.getElementById('dev-elemento').value;
+  const d = c[elem] || FirmasCore.BASE_STYLE;
+
+  setNumSlider('x', d.pos[0]); setNumSlider('y', d.pos[1]);
+  setNumSlider('size', d.size); setNumSlider('tracking', d.tracking);
+  document.getElementById('val-weight').value = d.weight || '700';
+  setNumSlider('leading', d.leading ?? 25);
+  document.getElementById('val-uselimit').checked = !!d.use_limit;
+  setNumSlider('limit', d.limit);
+  render();
+}
+function setNumSlider(campo, val) {
+  document.getElementById(`sl-${campo}`).value = val;
+  document.getElementById(`num-${campo}`).value = val;
+}
+function updSync(campo, val, commit) {
+  const c = config[empresaActual];
+  const elem = document.getElementById('dev-elemento').value;
+  const d = c[elem];
+  let v = parseFloat(val); if (Number.isNaN(v)) return;
+  document.getElementById(`sl-${campo}`).value = v;
+  document.getElementById(`num-${campo}`).value = v;
+  if (campo === 'x') d.pos[0] = v;
+  if (campo === 'y') d.pos[1] = v;
+  if (campo === 'size') d.size = v;
+  if (campo === 'tracking') d.tracking = v;
+  if (campo === 'leading') d.leading = v;
+  if (campo === 'limit') d.limit = Math.round(v);
+  render();
+  if (commit) Historia.push();
+}
+function updValDinamico() {
+  const c = config[empresaActual];
+  const elem = document.getElementById('dev-elemento').value;
+  c[elem].weight = document.getElementById('val-weight').value;
+  c[elem].use_limit = document.getElementById('val-uselimit').checked;
+  render(); Historia.push();
+}
+function restablecerElemento() {
+  const elem = document.getElementById('dev-elemento').value;
+  if (!confirm(`¿Restablecer "${FirmasCore.ELEMENT_LABELS[elem]}" a los valores por defecto?`)) return;
+  config[empresaActual][elem] = FirmasCore.deepClone(FirmasCore.TEMPLATE_EMP[elem]);
+  cargarInputsElemento(); Historia.push();
+}
+function toggleCopiarMenu() {
+  const menu = document.getElementById('copiar-menu');
+  if (!menu.classList.contains('hidden')) { menu.classList.add('hidden'); return; }
+  const elem = document.getElementById('dev-elemento').value;
+  const destinos = Object.keys(config).filter(e => e !== empresaActual);
+  menu.innerHTML = destinos.length
+    ? destinos.map(e => `<button type="button" class="w-full text-left px-3 py-2 text-xs hover:bg-[var(--bg-field)] text-slate-200" onclick="copiarEstiloA('${e.replace(/'/g, "\\'")}')">${e}</button>`).join('')
+    : `<div class="px-3 py-2 text-xs text-[var(--text-faint)]">No hay otras empresas</div>`;
+  menu.classList.remove('hidden');
+}
+function copiarEstiloA(destino) {
+  const elem = document.getElementById('dev-elemento').value;
+  config[destino][elem] = FirmasCore.deepClone(config[empresaActual][elem]);
+  document.getElementById('copiar-menu').classList.add('hidden');
+  showToast(`Estilo de "${FirmasCore.ELEMENT_LABELS[elem]}" copiado a ${destino}.`);
+  Historia.push();
+}
+document.addEventListener('click', (e) => {
+  const menu = document.getElementById('copiar-menu');
+  if (menu && !menu.contains(e.target) && !e.target.closest('[onclick="toggleCopiarMenu()"]')) menu.classList.add('hidden');
+  const menu2 = document.getElementById('agregar-fila-menu');
+  if (menu2 && !menu2.contains(e.target) && !e.target.closest('[onclick="toggleAgregarFilaMenu()"]')) menu2.classList.add('hidden');
+});
+
+// ── Bloque de contacto: anchor (posición/estilo compartido) ────────
+function cargarAnchorUI() {
+  const a = config[empresaActual].contacto.anchor;
+  setAnchorNumSlider('x', a.pos[0]); setAnchorNumSlider('y', a.pos[1]);
+  setAnchorNumSlider('size', a.size); setAnchorNumSlider('leading', a.leading);
+  setAnchorNumSlider('lh', a.line_height); setAnchorNumSlider('icon', a.icon_size);
+  setAnchorNumSlider('gap', a.gap_icono_texto);
+}
+function setAnchorNumSlider(suf, val) {
+  document.getElementById(`anchor-sl-${suf}`).value = val;
+  document.getElementById(`anchor-num-${suf}`).value = val;
+}
+function updAnchor(campo, val) {
+  const a = config[empresaActual].contacto.anchor;
+  let v = parseFloat(val); if (Number.isNaN(v)) return;
+  if (campo === 'pos0') { a.pos[0] = v; setAnchorNumSlider('x', v); }
+  else if (campo === 'pos1') { a.pos[1] = v; setAnchorNumSlider('y', v); }
+  else { a[campo] = v; setAnchorNumSlider({ size: 'size', leading: 'leading', line_height: 'lh', icon_size: 'icon', gap_icono_texto: 'gap' }[campo], v); }
+  render();
+}
+
+// ── Bloque de contacto: filas ────────────────────────────────────
+function toggleAgregarFilaMenu() {
+  const menu = document.getElementById('agregar-fila-menu');
+  if (!menu.classList.contains('hidden')) { menu.classList.add('hidden'); return; }
+  menu.innerHTML = Object.entries({ celular: 'Celular', telefono: 'Teléfono', direccion: 'Dirección', web: 'Web', email: 'Email', personalizado: 'Personalizada / texto fijo' })
+    .map(([k, v]) => `<button type="button" class="w-full text-left px-3 py-2 text-xs hover:bg-[var(--bg-field)] text-slate-200" onclick="agregarFila('${k}')">${v}</button>`).join('');
+  menu.classList.remove('hidden');
+}
+function agregarFila(tipo) {
+  const fila = FirmasCore.nuevaFila(tipo);
+  config[empresaActual].contacto.filas.push(fila);
+  document.getElementById('agregar-fila-menu').classList.add('hidden');
+  renderFilasUI(); renderCamposPruebaDinamicos(); render(); Historia.push();
+}
+function eliminarFila(id) {
+  const filas = config[empresaActual].contacto.filas;
+  config[empresaActual].contacto.filas = filas.filter(f => f.id !== id);
+  renderFilasUI(); renderCamposPruebaDinamicos(); render(); Historia.push();
+}
+function moverFila(id, dir) {
+  const filas = config[empresaActual].contacto.filas;
+  const i = filas.findIndex(f => f.id === id);
+  const j = i + dir;
+  if (j < 0 || j >= filas.length) return;
+  [filas[i], filas[j]] = [filas[j], filas[i]];
+  renderFilasUI(); render(); Historia.push();
+}
+function actualizarFila(id, patch) {
+  const fila = config[empresaActual].contacto.filas.find(f => f.id === id);
+  Object.assign(fila, patch);
+  render();
+}
+function actualizarFilaEnvolver(id, patch) {
+  const fila = config[empresaActual].contacto.filas.find(f => f.id === id);
+  Object.assign(fila.envolver, patch);
+  render();
+}
+function subirIconoFila(e, id) {
+  const f = e.target.files[0]; if (!f) return;
+  const r = new FileReader();
+  r.onload = (ev) => {
+    actualizarFila(id, { icono: ev.target.result });
+    FirmasCore.clearImageCache();
+    renderFilasUI(); render(); Historia.push();
+    e.target.value = '';
+  };
+  r.readAsDataURL(f);
+}
+
+function renderFilasUI() {
+  const cont = document.getElementById('filas-lista');
+  const filas = config[empresaActual].contacto.filas;
+  if (!filas.length) {
+    cont.innerHTML = `<p class="field-hint mb-3">Sin filas todavía. Usa "+ Agregar fila" para sumar Celular, Teléfono, Dirección, Web, Email o un campo personalizado.</p>`;
+    return;
+  }
+  cont.innerHTML = filas.map((f, i) => {
+    const iconPreview = f.icono ? `<img src="${f.icono}" alt="">` : `<span class="text-[10px] text-[var(--text-faint)]">s/í</span>`;
+    return `
+    <div class="fila-card ${f.activo === false ? 'inactiva' : ''}" data-fila="${f.id}">
+      <div class="fila-head">
+        <div class="fila-reorder">
+          <button type="button" onclick="moverFila('${f.id}', -1)" title="Subir" ${i === 0 ? 'disabled' : ''}>▲</button>
+          <button type="button" onclick="moverFila('${f.id}', 1)" title="Bajar" ${i === filas.length - 1 ? 'disabled' : ''}>▼</button>
+        </div>
+        <div class="fila-icon-preview">${iconPreview}</div>
+        <input type="text" class="field mini-field flex-1" value="${escAttr(f.etiqueta)}" oninput="actualizarFila('${f.id}', {etiqueta: this.value}); renderFilasUILabel('${f.id}', this.value)" placeholder="Etiqueta">
+        <label class="flex items-center gap-1 text-[10px] text-slate-400 cursor-pointer" title="Fila activa">
+          <input type="checkbox" ${f.activo !== false ? 'checked' : ''} onchange="actualizarFila('${f.id}', {activo: this.checked}); this.closest('.fila-card').classList.toggle('inactiva', !this.checked); Historia.push()">
+        </label>
+        <button type="button" onclick="eliminarFila('${f.id}')" class="btn btn-danger-ghost btn-icon !p-1 !text-xs" title="Eliminar fila">🗑</button>
+      </div>
+
+      <div class="grid grid-cols-2 gap-2 mb-2">
+        <select class="field mini-field" onchange="actualizarFila('${f.id}', {modo: this.value}); renderFilasUI(); Historia.push()">
+          <option value="dato" ${f.modo === 'dato' ? 'selected' : ''}>Dato del formulario</option>
+          <option value="fijo" ${f.modo === 'fijo' ? 'selected' : ''}>Texto fijo (igual para todos)</option>
+        </select>
+        ${f.modo === 'dato'
+          ? `<input type="text" class="field mini-field" value="${escAttr(f.campo)}" placeholder="clave del campo (ej: celular)" oninput="actualizarFila('${f.id}', {campo: this.value})" onchange="Historia.push()">`
+          : `<span class="field mini-field flex items-center text-[var(--text-faint)]">texto igual para todos</span>`}
+      </div>
+
+      ${f.modo === 'dato'
+        ? `<input type="text" class="field mini-field mb-2" value="${escAttr(f.default)}" placeholder="Valor por defecto (opcional)" oninput="actualizarFila('${f.id}', {default: this.value})" onchange="Historia.push()">`
+        : `<input type="text" class="field mini-field mb-2" value="${escAttr(f.texto_fijo)}" placeholder="Texto que se mostrará siempre" oninput="actualizarFila('${f.id}', {texto_fijo: this.value})" onchange="Historia.push()">`}
+
+      <div class="flex gap-2 mb-2">
+        <input type="text" class="field mini-field flex-1" value="${escAttr(f.icono).startsWith('data:image') ? '[ícono local]' : escAttr(f.icono)}" placeholder="ruta del ícono (opcional)" oninput="if(this.value!=='[ícono local]') actualizarFila('${f.id}', {icono: this.value})" onchange="renderFilasUI(); Historia.push()">
+        <button type="button" onclick="document.getElementById('file-icono-${f.id}').click()" class="btn btn-ghost btn-sm">Subir</button>
+        <input type="file" id="file-icono-${f.id}" accept="image/png,image/svg+xml" class="hidden" onchange="subirIconoFila(event, '${f.id}')">
+      </div>
+
+      <label class="flex items-center gap-2 text-[11px] text-slate-300 font-medium cursor-pointer mb-1">
+        <input type="checkbox" ${f.envolver.activo ? 'checked' : ''} onchange="actualizarFilaEnvolver('${f.id}', {activo: this.checked}); renderFilasUI(); Historia.push()">
+        Envolver en varias líneas
+      </label>
+      ${f.envolver.activo ? `
+      <div class="grid grid-cols-2 gap-2">
+        <div>
+          <label class="field-label !text-[9px]">Ancho máx (px)</label>
+          <input type="number" class="field mini-field" value="${f.envolver.max_ancho_px}" oninput="actualizarFilaEnvolver('${f.id}', {max_ancho_px: parseInt(this.value)||150})" onchange="Historia.push()">
+        </div>
+        <div>
+          <label class="field-label !text-[9px]">Máx líneas</label>
+          <input type="number" class="field mini-field" value="${f.envolver.max_lineas}" min="1" max="5" oninput="actualizarFilaEnvolver('${f.id}', {max_lineas: parseInt(this.value)||2})" onchange="Historia.push()">
+        </div>
+      </div>` : ''}
+    </div>`;
+  }).join('');
+}
+function renderFilasUILabel() { /* el input de etiqueta ya refleja su propio valor; no-op reservado */ }
+
+function escAttr(s) { return String(s ?? '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;'); }
+
+// ── Datos de prueba dinámicos (uno por cada campo "dato" usado) ────
+function renderCamposPruebaDinamicos() {
+  const cont = document.getElementById('pr-campos-dinamicos');
+  const filas = config[empresaActual].contacto.filas.filter(f => f.modo === 'dato' && f.campo);
+  cont.innerHTML = filas.map(f => `
+    <div><label class="field-label">${escAttr(f.etiqueta)}</label>
+      <input type="text" class="field" id="prc-${f.campo}" oninput="render()" placeholder="${f.tipo === 'direccion' ? 'Prueba una dirección larga para ver el salto de línea' : ''}">
+    </div>`).join('');
+}
+
+// ── Zoom ──────────────────────────────────────────────────────────
+function setZoom(z) {
+  zoom = Math.min(6, Math.max(0.25, Math.round(z * 4) / 4));
+  document.getElementById('zoom-readout').textContent = Math.round(zoom * 100) + '%';
+  render();
+}
+
+// ── Render principal ─────────────────────────────────────────────
+async function render() {
+  const c = config[empresaActual]; if (!c) return;
+  const datosContacto = {};
+  (c.contacto.filas || []).forEach(f => { if (f.modo === 'dato' && f.campo) { const el = document.getElementById(`prc-${f.campo}`); datosContacto[f.campo] = el ? el.value : ''; } });
+  const dObj = {
+    nom1: document.getElementById('pr-nom1').value, nom2: document.getElementById('pr-nom2').value,
+    pat: document.getElementById('pr-pat').value, mat: document.getElementById('pr-mat').value,
+    cargo: document.getElementById('pr-cargo').value,
+    ...datosContacto,
+  };
+  const canvas = document.getElementById('dev-canvas');
+  const { layout, canvasW, canvasH } = await FirmasCore.drawSignature(canvas, dObj, c);
+  currentLayout = layout;
+
+  canvas.style.width = (canvasW * zoom) + 'px';
+  canvas.style.height = (canvasH * zoom) + 'px';
+  document.getElementById('canvas-wrap').style.width = (canvasW * zoom) + 'px';
+  document.getElementById('canvas-wrap').style.height = (canvasH * zoom) + 'px';
+  document.getElementById('canvas-dims').textContent = `${canvasW}×${canvasH}px @ ${Math.round(zoom * 100)}%`;
+
+  buildOverlay(layout, canvasW, canvasH);
+  if (document.getElementById('chk-rulers').checked) buildRulers(canvasW, canvasH);
+  else { document.getElementById('ruler-h').innerHTML = ''; document.getElementById('ruler-v').innerHTML = ''; }
+}
+
+const LABELS_OVERLAY = { ...FirmasCore.ELEMENT_LABELS, contacto: 'Contacto (bloque)' };
+
+function buildOverlay(layout, canvasW, canvasH) {
+  const overlay = document.getElementById('drag-overlay');
+  overlay.style.width = (canvasW * zoom) + 'px';
+  overlay.style.height = (canvasH * zoom) + 'px';
+  const elemSeleccionado = document.getElementById('dev-elemento').value;
+
+  overlay.innerHTML = '';
+  for (const key of Object.keys(LABELS_OVERLAY)) {
+    const box = layout[key]; if (!box) continue;
+    const div = document.createElement('div');
+    div.className = 'drag-box' + (key === elemSeleccionado ? ' selected' : '');
+    div.style.left = (box.x * zoom) + 'px';
+    div.style.top = (box.y * zoom) + 'px';
+    div.style.width = Math.max(6, box.w * zoom) + 'px';
+    div.style.height = Math.max(6, box.h * zoom) + 'px';
+    div.tabIndex = 0;
+    div.dataset.elem = key;
+    div.innerHTML = `<span class="drag-chip">${LABELS_OVERLAY[key]}</span>`;
+    div.addEventListener('pointerdown', (e) => startDrag(e, key, box));
+    div.addEventListener('click', () => { if (key !== 'contacto') { document.getElementById('dev-elemento').value = key; cargarInputsElemento(); } });
+    div.addEventListener('keydown', (e) => nudgeConTeclado(e, key));
+    overlay.appendChild(div);
+  }
+}
+
+function nudgeConTeclado(e, key) {
+  const arrows = { ArrowUp: [0, -1], ArrowDown: [0, 1], ArrowLeft: [-1, 0], ArrowRight: [1, 0] };
+  if (!arrows[e.key]) return;
+  e.preventDefault();
+  const step = e.shiftKey ? 10 : 1;
+  const [dx, dy] = arrows[e.key];
+  const pos = key === 'contacto' ? config[empresaActual].contacto.anchor.pos : config[empresaActual][key].pos;
+  if (key !== 'contacto') { document.getElementById('dev-elemento').value = key; }
+  pos[0] += dx * step; pos[1] += dy * step;
+  if (key === 'contacto') cargarAnchorUI(); else cargarInputsElemento();
+  render();
+  Historia.push();
+}
+
+// ── Arrastre con snapping ────────────────────────────────────────
+function startDrag(e, key, box) {
+  e.preventDefault();
+  const pos = key === 'contacto' ? config[empresaActual].contacto.anchor.pos : config[empresaActual][key].pos;
+  dragging = { key, startClientX: e.clientX, startClientY: e.clientY, origX: pos[0], origY: pos[1], box };
+  if (key !== 'contacto') document.getElementById('dev-elemento').value = key;
+  window.addEventListener('pointermove', onDragMove);
+  window.addEventListener('pointerup', onDragEnd, { once: true });
+}
+
+function onDragMove(e) {
+  if (!dragging) return;
+  const dxCss = e.clientX - dragging.startClientX;
+  const dyCss = e.clientY - dragging.startClientY;
+  let nx = dragging.origX + dxCss / zoom;
+  let ny = dragging.origY + dyCss / zoom;
+
+  const guidesOn = document.getElementById('chk-guides').checked;
+  clearGuides();
+  if (guidesOn && currentLayout) {
+    const snapped = computeSnap(nx, ny, dragging.key, dragging.box);
+    nx = snapped.x; ny = snapped.y;
+  }
+
+  const pos = dragging.key === 'contacto' ? config[empresaActual].contacto.anchor.pos : config[empresaActual][dragging.key].pos;
+  pos[0] = Math.round(nx); pos[1] = Math.round(ny);
+  if (dragging.key === 'contacto') cargarAnchorUI(); else cargarInputsElemento();
+}
+
+function onDragEnd() {
+  window.removeEventListener('pointermove', onDragMove);
+  clearGuides(); dragging = null; Historia.push();
+}
+
+const SNAP_TOL = 5;
+function computeSnap(nx, ny, key, box) {
+  const canvas = document.getElementById('dev-canvas');
+  const canvasW = canvas.width, canvasH = canvas.height;
+  let x = nx, y = ny;
+  const linesV = [{ pos: canvasW / 2 }];
+  const linesH = [{ pos: canvasH / 2 }];
+  for (const [k, l] of Object.entries(currentLayout)) {
+    if (k === key) continue;
+    linesV.push({ pos: l.x }); linesH.push({ pos: l.y });
+  }
+  const centerX = nx + box.w / 2;
+  for (const line of linesV) {
+    if (Math.abs(centerX - line.pos) < SNAP_TOL) { x = line.pos - box.w / 2; drawGuide('v', line.pos); break; }
+    if (Math.abs(nx - line.pos) < SNAP_TOL) { x = line.pos; drawGuide('v', line.pos); break; }
+  }
+  for (const line of linesH) {
+    if (Math.abs(ny - line.pos) < SNAP_TOL) { y = line.pos; drawGuide('h', line.pos); break; }
+  }
+  return { x, y };
+}
+function drawGuide(orientation, canvasPos) {
+  const overlay = document.getElementById('drag-overlay');
+  const g = document.createElement('div');
+  g.className = 'guide-line guide-' + orientation;
+  if (orientation === 'v') { g.style.left = (canvasPos * zoom) + 'px'; g.style.height = overlay.style.height; }
+  else { g.style.top = (canvasPos * zoom) + 'px'; g.style.width = overlay.style.width; }
+  g.dataset.guide = '1';
+  overlay.appendChild(g);
+}
+function clearGuides() { document.querySelectorAll('[data-guide="1"]').forEach(el => el.remove()); }
+
+// ── Reglas ────────────────────────────────────────────────────────
+function buildRulers(canvasW, canvasH) {
+  const rh = document.getElementById('ruler-h'), rv = document.getElementById('ruler-v');
+  rh.style.width = (canvasW * zoom) + 'px';
+  rv.style.height = (canvasH * zoom) + 'px';
+  rh.innerHTML = ''; rv.innerHTML = '';
+  const step = zoom >= 2 ? 10 : (zoom >= 1 ? 25 : 50);
+  for (let px = 0; px <= canvasW; px += step) {
+    const major = step >= 25 || px % 50 === 0;
+    const t = document.createElement('div');
+    t.className = major ? 'tick-major' : 'tick-minor';
+    t.style.left = (px * zoom) + 'px'; t.style.top = '0'; t.style.height = major ? '100%' : '40%';
+    if (major) t.textContent = px;
+    rh.appendChild(t);
+  }
+  for (let px = 0; px <= canvasH; px += step) {
+    const major = step >= 25 || px % 50 === 0;
+    const t = document.createElement('div');
+    t.className = major ? 'tick-major' : 'tick-minor';
+    t.style.top = (px * zoom) + 'px'; t.style.left = '0'; t.style.width = major ? '100%' : '40%';
+    if (major) t.textContent = px;
+    rv.appendChild(t);
+  }
+}
+
+// ── Utilidades ────────────────────────────────────────────────────
+function showToast(msg, tipo = 'success') {
+  const t = document.createElement('div');
+  t.className = `toast toast-${tipo}`; t.textContent = msg;
+  document.body.appendChild(t);
+  requestAnimationFrame(() => t.classList.add('visible'));
+  setTimeout(() => { t.classList.remove('visible'); setTimeout(() => t.remove(), 300); }, 4000);
+}
+
+// ── Publicar directo en GitHub (Contents API) ───────────────────────
+// El token vive SOLO en localStorage de este navegador; nunca se incluye
+// en el config_firmas.json exportado ni se envía a nada que no sea
+// https://api.github.com con este mismo owner/repo.
+let ghConfig = { owner: 'MKTFiberlux', repo: 'firmas-fiberlux', branch: 'main', token: '' };
+
+function cargarConfigGitHub() {
+  try { ghConfig = { ...ghConfig, ...JSON.parse(localStorage.getItem('gh_publish_config') || '{}') }; } catch {}
+  document.getElementById('gh-owner').value = ghConfig.owner || '';
+  document.getElementById('gh-repo').value = ghConfig.repo || '';
+  document.getElementById('gh-branch').value = ghConfig.branch || 'main';
+  document.getElementById('gh-token').value = ghConfig.token || '';
+  pintarEstadoGitHub();
+}
+function guardarConfigGitHub() {
+  ghConfig = {
+    owner: document.getElementById('gh-owner').value.trim(),
+    repo: document.getElementById('gh-repo').value.trim(),
+    branch: document.getElementById('gh-branch').value.trim() || 'main',
+    token: document.getElementById('gh-token').value.trim(),
+  };
+  localStorage.setItem('gh_publish_config', JSON.stringify(ghConfig));
+  pintarEstadoGitHub();
+  showToast('Configuración de GitHub guardada en este navegador.');
+}
+function pintarEstadoGitHub() {
+  const el = document.getElementById('gh-status');
+  if (!ghConfig.owner || !ghConfig.repo || !ghConfig.token) {
+    el.innerHTML = `<span class="warn-chip">⚠ Configura owner/repo/token antes de publicar</span>`;
+    document.getElementById('gh-settings').open = true;
+  } else {
+    el.innerHTML = `<span class="text-[var(--text-faint)]">Publicando en <b class="text-[var(--text)]">${ghConfig.owner}/${ghConfig.repo}</b> (rama <b class="text-[var(--text)]">${ghConfig.branch}</b>)</span>`;
+  }
+}
+
+async function probarConexionGitHub() {
+  guardarConfigGitHub();
+  try {
+    const res = await fetch(`https://api.github.com/repos/${encodeURIComponent(ghConfig.owner)}/${encodeURIComponent(ghConfig.repo)}`, {
+      headers: { Authorization: `Bearer ${ghConfig.token}`, Accept: 'application/vnd.github+json' },
+    });
+    if (res.status === 200) { showToast('Conexión OK: el token puede ver el repositorio.'); }
+    else if (res.status === 404) { showToast('No se encontró ese repo, o el token no tiene acceso a él.', 'error'); }
+    else if (res.status === 401) { showToast('Token inválido o expirado.', 'error'); }
+    else { showToast(`GitHub respondió ${res.status}.`, 'error'); }
+  } catch (e) {
+    showToast('No se pudo contactar a GitHub (revisa tu conexión).', 'error');
+  }
+}
+
+function slugify(s) {
+  return String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
+    .replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') || 'item';
+}
+function ghContentsUrl(path) {
+  return `https://api.github.com/repos/${encodeURIComponent(ghConfig.owner)}/${encodeURIComponent(ghConfig.repo)}/contents/` +
+    path.split('/').map(encodeURIComponent).join('/');
+}
+async function ghGetSha(path) {
+  const res = await fetch(`${ghContentsUrl(path)}?ref=${encodeURIComponent(ghConfig.branch)}`, {
+    headers: { Authorization: `Bearer ${ghConfig.token}`, Accept: 'application/vnd.github+json' },
+  });
+  if (res.status === 200) { const j = await res.json(); return j.sha; }
+  if (res.status === 404) return null;
+  const err = await res.json().catch(() => ({}));
+  throw new Error(err.message || `Error ${res.status} consultando ${path}`);
+}
+async function ghPutFile(path, base64Content, message) {
+  const sha = await ghGetSha(path);
+  const res = await fetch(ghContentsUrl(path), {
+    method: 'PUT',
+    headers: { Authorization: `Bearer ${ghConfig.token}`, Accept: 'application/vnd.github+json', 'Content-Type': 'application/json' },
+    body: JSON.stringify({ message, content: base64Content, branch: ghConfig.branch, ...(sha ? { sha } : {}) }),
+  });
+  if (!res.ok) { const err = await res.json().catch(() => ({})); throw new Error(err.message || `Error ${res.status} al subir ${path}`); }
+  return res.json();
+}
+function logProgreso(msg) {
+  const cont = document.getElementById('gh-progreso');
+  cont.classList.remove('hidden');
+  cont.innerHTML += `<div>▸ ${msg}</div>`;
+  cont.scrollTop = cont.scrollHeight;
+}
+
+async function publicarEnGitHub() {
+  if (!ghConfig.owner || !ghConfig.repo || !ghConfig.token) {
+    showToast('Configura owner/repo/token de GitHub primero.', 'error');
+    document.getElementById('gh-settings').open = true;
+    return;
+  }
+  const btn = document.getElementById('btn-publicar-gh');
+  const prog = document.getElementById('gh-progreso');
+  prog.innerHTML = ''; prog.classList.remove('hidden');
+  btn.disabled = true; btn.textContent = 'Publicando...';
+  try {
+    const cfgClone = FirmasCore.deepClone(config);
+    for (const emp in cfgClone) {
+      const c = cfgClone[emp];
+      const slugEmp = slugify(emp);
+
+      if (c.plantilla && c.plantilla.startsWith('data:image')) {
+        const ext = c.plantilla.startsWith('data:image/png') ? 'png' : 'jpg';
+        const path = `assets/plantillas/${slugEmp}/normal-${Date.now()}.${ext}`;
+        logProgreso(`Subiendo fondo de "${emp}"...`);
+        await ghPutFile(path, c.plantilla.split(',')[1], `Actualiza fondo de ${emp} (vía diseñador)`);
+        c.plantilla = path;
+      }
+      for (const fila of (c.contacto && c.contacto.filas) || []) {
+        if (fila.icono && fila.icono.startsWith('data:image')) {
+          const ext = fila.icono.startsWith('data:image/png') ? 'png' : (fila.icono.startsWith('data:image/svg') ? 'svg' : 'jpg');
+          const path = `assets/icons/${slugEmp}-${slugify(fila.etiqueta || fila.id)}-${Date.now()}.${ext}`;
+          logProgreso(`Subiendo ícono "${fila.etiqueta}" (${emp})...`);
+          await ghPutFile(path, fila.icono.split(',')[1], `Sube ícono ${fila.etiqueta} de ${emp} (vía diseñador)`);
+          fila.icono = path;
+        }
+      }
+    }
+
+    logProgreso('Actualizando config_firmas.json...');
+    const jsonStr = JSON.stringify(cfgClone, null, 2);
+    const b64 = btoa(unescape(encodeURIComponent(jsonStr)));
+    await ghPutFile('config_firmas.json', b64, 'Actualiza config_firmas.json (vía diseñador)');
+
+    config = cfgClone;
+    guardarLocal(); llenarCombosEmpresa(true); Historia.push();
+
+    logProgreso('¡Listo! GitHub Pages se actualizará en ~1 minuto.');
+    showToast('Publicado en GitHub correctamente.');
+  } catch (err) {
+    logProgreso(`❌ ${err.message}`);
+    showToast('Error al publicar: ' + err.message, 'error');
+  } finally {
+    btn.disabled = false; btn.textContent = '🚀 Publicar en GitHub';
+  }
+}
+
+window.addEventListener('load', cargarConfigGitHub);
+</script>
+</body>
+</html>

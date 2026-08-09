@@ -1,0 +1,422 @@
+{
+  "Fiberlux": {
+    "plantilla": "assets/plantillas/fiberlux/normal.png",
+    "color_texto": "#FFFFFF",
+    "font_family": "'Poppins', Arial, sans-serif",
+    "accent_ui": "#96237A",
+    "style_nombre": {
+      "pos": [
+        49,
+        33
+      ],
+      "size": 24,
+      "tracking": 0,
+      "weight": "700",
+      "limit": 12,
+      "use_limit": true
+    },
+    "style_apellido": {
+      "pos": [
+        49,
+        58
+      ],
+      "size": 24,
+      "tracking": 0,
+      "weight": "700",
+      "limit": 12,
+      "use_limit": true
+    },
+    "style_cargo": {
+      "pos": [
+        49,
+        86
+      ],
+      "size": 10,
+      "tracking": 0,
+      "weight": "500",
+      "limit": 29,
+      "use_limit": true,
+      "leading": 11
+    },
+    "contacto": {
+      "anchor": {
+        "pos": [
+          254,
+          49
+        ],
+        "size": 12,
+        "tracking": 0.5,
+        "weight": "400",
+        "leading": 20,
+        "line_height": 14,
+        "icon_size": 14,
+        "gap_icono_texto": 8
+      },
+      "filas": [
+        {
+          "id": "fila_8lwz0fe",
+          "modo": "dato",
+          "tipo": "celular",
+          "campo": "celular",
+          "etiqueta": "Celular",
+          "icono": "",
+          "default": "",
+          "texto_fijo": "",
+          "activo": true,
+          "envolver": {
+            "activo": false,
+            "max_ancho_px": 200,
+            "max_lineas": 2
+          }
+        },
+        {
+          "id": "fila_mt2eihi",
+          "modo": "dato",
+          "tipo": "web",
+          "campo": "web",
+          "etiqueta": "Web",
+          "icono": "",
+          "default": "www.fiberlux.pe",
+          "texto_fijo": "",
+          "activo": true,
+          "envolver": {
+            "activo": false,
+            "max_ancho_px": 200,
+            "max_lineas": 2
+          }
+        },
+        {
+          "id": "fila_dx9xixv",
+          "modo": "dato",
+          "tipo": "direccion",
+          "campo": "direccion",
+          "etiqueta": "Dirección",
+          "icono": "",
+          "default": "Av. Pardo 513, Miraflores - Lima",
+          "texto_fijo": "",
+          "activo": true,
+          "envolver": {
+            "activo": true,
+            "max_ancho_px": 170,
+            "max_lineas": 2
+          }
+        }
+      ]
+    }
+  },
+  "Fiberlux Negocios": {
+    "plantilla": "assets/plantillas/fiberlux-negocios/normal.png",
+    "color_texto": "#992b7f",
+    "font_family": "'Poppins', Arial, sans-serif",
+    "accent_ui": "#992b7f",
+    "style_nombre": {
+      "pos": [
+        50,
+        33
+      ],
+      "size": 27,
+      "tracking": 0,
+      "weight": "700",
+      "limit": 12,
+      "use_limit": true
+    },
+    "style_apellido": {
+      "pos": [
+        50,
+        59
+      ],
+      "size": 27,
+      "tracking": 0,
+      "weight": "700",
+      "limit": 11,
+      "use_limit": true
+    },
+    "style_cargo": {
+      "pos": [
+        51,
+        93
+      ],
+      "size": 11,
+      "tracking": 0,
+      "weight": "500",
+      "limit": 29,
+      "use_limit": true,
+      "leading": 12
+    },
+    "contacto": {
+      "anchor": {
+        "pos": [
+          268,
+          48
+        ],
+        "size": 13,
+        "tracking": 0,
+        "weight": "400",
+        "leading": 20,
+        "line_height": 15,
+        "icon_size": 14,
+        "gap_icono_texto": 8
+      },
+      "filas": [
+        {
+          "id": "fila_hxgf131",
+          "modo": "dato",
+          "tipo": "celular",
+          "campo": "celular",
+          "etiqueta": "Celular",
+          "icono": "",
+          "default": "",
+          "texto_fijo": "",
+          "activo": true,
+          "envolver": {
+            "activo": false,
+            "max_ancho_px": 200,
+            "max_lineas": 2
+          }
+        },
+        {
+          "id": "fila_yqr1uca",
+          "modo": "dato",
+          "tipo": "web",
+          "campo": "web",
+          "etiqueta": "Web",
+          "icono": "",
+          "default": "negocios.fiberlux.pe",
+          "texto_fijo": "",
+          "activo": true,
+          "envolver": {
+            "activo": false,
+            "max_ancho_px": 200,
+            "max_lineas": 2
+          }
+        },
+        {
+          "id": "fila_stubaph",
+          "modo": "dato",
+          "tipo": "direccion",
+          "campo": "direccion",
+          "etiqueta": "Dirección",
+          "icono": "",
+          "default": "Av. Pardo 513, Miraflores - Lima",
+          "texto_fijo": "",
+          "activo": true,
+          "envolver": {
+            "activo": true,
+            "max_ancho_px": 170,
+            "max_lineas": 2
+          }
+        }
+      ]
+    }
+  },
+  "Nextnet": {
+    "plantilla": "assets/plantillas/nextnet/normal.png",
+    "color_texto": "#022c32",
+    "font_family": "'Gilmer', 'Segoe UI', Arial, sans-serif",
+    "accent_ui": "#13DDA3",
+    "style_nombre": {
+      "pos": [
+        43,
+        26
+      ],
+      "size": 24,
+      "tracking": 0,
+      "weight": "700",
+      "limit": 12,
+      "use_limit": true
+    },
+    "style_apellido": {
+      "pos": [
+        43,
+        53
+      ],
+      "size": 24,
+      "tracking": 0,
+      "weight": "700",
+      "limit": 11,
+      "use_limit": true
+    },
+    "style_cargo": {
+      "pos": [
+        43,
+        81
+      ],
+      "size": 10,
+      "tracking": 0.5,
+      "weight": "500",
+      "limit": 29,
+      "use_limit": true,
+      "leading": 11
+    },
+    "contacto": {
+      "anchor": {
+        "pos": [
+          255,
+          47
+        ],
+        "size": 13,
+        "tracking": 0,
+        "weight": "400",
+        "leading": 19,
+        "line_height": 15,
+        "icon_size": 14,
+        "gap_icono_texto": 8
+      },
+      "filas": [
+        {
+          "id": "fila_b29z9if",
+          "modo": "dato",
+          "tipo": "celular",
+          "campo": "celular",
+          "etiqueta": "Celular",
+          "icono": "",
+          "default": "",
+          "texto_fijo": "",
+          "activo": true,
+          "envolver": {
+            "activo": false,
+            "max_ancho_px": 200,
+            "max_lineas": 2
+          }
+        },
+        {
+          "id": "fila_ht2w2zk",
+          "modo": "dato",
+          "tipo": "web",
+          "campo": "web",
+          "etiqueta": "Web",
+          "icono": "",
+          "default": "www.nextnet.pe",
+          "texto_fijo": "",
+          "activo": true,
+          "envolver": {
+            "activo": false,
+            "max_ancho_px": 200,
+            "max_lineas": 2
+          }
+        },
+        {
+          "id": "fila_z9dznr1",
+          "modo": "dato",
+          "tipo": "direccion",
+          "campo": "direccion",
+          "etiqueta": "Dirección",
+          "icono": "",
+          "default": "Av. Pardo 513, Miraflores - Lima",
+          "texto_fijo": "",
+          "activo": true,
+          "envolver": {
+            "activo": true,
+            "max_ancho_px": 170,
+            "max_lineas": 2
+          }
+        }
+      ]
+    }
+  },
+  "Grupo FLX": {
+    "plantilla": "assets/plantillas/grupo-flx/normal.png",
+    "color_texto": "#FFFFFF",
+    "font_family": "'Poppins', Arial, sans-serif",
+    "accent_ui": "#96237A",
+    "style_nombre": {
+      "pos": [
+        50,
+        32
+      ],
+      "size": 26,
+      "tracking": 0,
+      "weight": "700",
+      "limit": 12,
+      "use_limit": true
+    },
+    "style_apellido": {
+      "pos": [
+        49,
+        60
+      ],
+      "size": 26,
+      "tracking": 0,
+      "weight": "700",
+      "limit": 10,
+      "use_limit": true
+    },
+    "style_cargo": {
+      "pos": [
+        50,
+        95
+      ],
+      "size": 10,
+      "tracking": 0.5,
+      "weight": "500",
+      "limit": 28,
+      "use_limit": true,
+      "leading": 12
+    },
+    "contacto": {
+      "anchor": {
+        "pos": [
+          254,
+          38
+        ],
+        "size": 13,
+        "tracking": 0,
+        "weight": "400",
+        "leading": 20,
+        "line_height": 15,
+        "icon_size": 14,
+        "gap_icono_texto": 8
+      },
+      "filas": [
+        {
+          "id": "fila_5w3kyu9",
+          "modo": "dato",
+          "tipo": "celular",
+          "campo": "celular",
+          "etiqueta": "Celular",
+          "icono": "",
+          "default": "",
+          "texto_fijo": "",
+          "activo": true,
+          "envolver": {
+            "activo": false,
+            "max_ancho_px": 200,
+            "max_lineas": 2
+          }
+        },
+        {
+          "id": "fila_c9cl1bj",
+          "modo": "dato",
+          "tipo": "web",
+          "campo": "web",
+          "etiqueta": "Web",
+          "icono": "",
+          "default": "www.fiberlux.pe",
+          "texto_fijo": "",
+          "activo": true,
+          "envolver": {
+            "activo": false,
+            "max_ancho_px": 200,
+            "max_lineas": 2
+          }
+        },
+        {
+          "id": "fila_ri1dija",
+          "modo": "dato",
+          "tipo": "direccion",
+          "campo": "direccion",
+          "etiqueta": "Dirección",
+          "icono": "",
+          "default": "Av. Pardo 513, Miraflores - Lima",
+          "texto_fijo": "",
+          "activo": true,
+          "envolver": {
+            "activo": true,
+            "max_ancho_px": 170,
+            "max_lineas": 2
+          }
+        }
+      ]
+    }
+  }
+}

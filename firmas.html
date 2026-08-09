@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Generador de Firmas — Fiberlux</title>
+<meta name="description" content="Genera tu firma de correo oficial del Grupo Fiberlux en segundos.">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;700&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+<link rel="stylesheet" href="shared/firmas-core.css">
+<style>
+  html, body { height: 100%; }
+  .app-shell { display: flex; height: 100vh; overflow: hidden; }
+  .app-sidebar { width: 264px; flex-shrink: 0; background: var(--bg-panel); border-right: 1px solid var(--border-soft); display: flex; flex-direction: column; }
+  .app-main { flex: 1; position: relative; overflow: hidden; }
+  .app-main section.seccion.activa { position: absolute; inset: 0; overflow-y: auto; }
+  .campo-error { border-color: var(--danger) !important; box-shadow: 0 0 0 3px rgba(220,38,38,.25) !important; }
+</style>
+</head>
+<body>
+
+<div class="app-shell">
+  <aside class="app-sidebar">
+    <div class="p-6">
+      <h1 class="text-xl font-bold text-white tracking-wide leading-tight">Generador de<br><span style="color:var(--acento)">Firmas Fiberlux</span></h1>
+    </div>
+    <nav class="flex-1 px-4 space-y-1.5">
+      <button onclick="cambiarTab('individual')" id="btn-individual" class="nav-btn"><span class="nav-dot"></span>Individual</button>
+      <button onclick="cambiarTab('masiva')" id="btn-masiva" class="nav-btn"><span class="nav-dot"></span>Carga masiva</button>
+    </nav>
+    <div class="p-4 text-[10px] text-[var(--text-faint)] leading-relaxed border-t border-[var(--border-soft)]">
+      ¿Necesitas editar plantillas, íconos o campos? Eso vive en <code class="bg-black/30 px-1 rounded">disenador.html</code>, de uso exclusivo del equipo de marca.
+    </div>
+  </aside>
+
+  <main class="app-main">
+    <!-- ═══ INDIVIDUAL ═══ -->
+    <section id="sec-individual" class="seccion activa p-8 bg-[#0A0A0A]">
+      <h2 class="text-2xl font-bold mb-1">Generación individual</h2>
+      <p class="text-sm text-[var(--text-muted)] mb-6">Completa tus datos y descarga tu firma lista para instalar.</p>
+
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 max-w-6xl">
+        <div>
+          <div class="mb-5">
+            <label class="field-label">Empresa / marca</label>
+            <div id="brand-picker" class="brand-picker" role="radiogroup" aria-label="Empresa"></div>
+          </div>
+
+          <div class="grid grid-cols-2 gap-4">
+            <div><label class="field-label" for="in-nom1">Primer nombre <span class="text-red-400 normal-case font-normal" title="Al menos un nombre es requerido">*</span></label><input type="text" id="in-nom1" class="field" oninput="actualizarPreview(); limpiarError(this)"></div>
+            <div><label class="field-label" for="in-nom2">Segundo nombre</label><input type="text" id="in-nom2" class="field" oninput="actualizarPreview(); limpiarError(this)"></div>
+            <div><label class="field-label" for="in-pat">Apellido paterno <span class="text-red-400 normal-case font-normal" title="Al menos un apellido es requerido">*</span></label><input type="text" id="in-pat" class="field" oninput="actualizarPreview(); limpiarError(this)"></div>
+            <div><label class="field-label" for="in-mat">Apellido materno</label><input type="text" id="in-mat" class="field" oninput="actualizarPreview(); limpiarError(this)"></div>
+            <p class="col-span-2 field-hint -mt-1">* Requerido — basta con uno de cada par. El segundo se abrevia automáticamente si el conjunto supera el límite de caracteres.</p>
+            <div class="col-span-2"><label class="field-label" for="in-cargo">Cargo</label><input type="text" id="in-cargo" class="field" placeholder="Ej: Analista de Marketing" oninput="actualizarPreview()"></div>
+          </div>
+
+          <div id="campos-contacto-dinamicos" class="grid grid-cols-2 gap-4 mt-4"></div>
+
+          <div class="flex flex-wrap gap-2 mt-6">
+            <button onclick="descargarFirma()" class="btn btn-success">⬇ Descargar PNG</button>
+            <button onclick="copiarFirma()" class="btn btn-ghost" title="Copiar imagen al portapapeles">📋 Copiar</button>
+            <button onclick="document.getElementById('modal-instrucciones').classList.remove('hidden')" class="btn btn-ghost">¿Cómo instalar?</button>
+          </div>
+        </div>
+
+        <div>
+          <h3 class="text-xs font-bold uppercase tracking-wide text-[var(--text-muted)] mb-3">Previsualización real</h3>
+          <div class="canvas-shell">
+            <canvas id="preview-canvas"></canvas>
+          </div>
+          <p class="field-hint mt-2">Esto es exactamente lo que se descargará — tamaño real, sin recortes de navegador.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══ CARGA MASIVA ═══ -->
+    <section id="sec-masiva" class="seccion p-8 bg-[#0A0A0A]">
+      <h2 class="text-2xl font-bold mb-1">Carga masiva (Excel)</h2>
+      <p class="text-sm text-[var(--text-muted)] mb-6">Genera firmas para todo un equipo de una sola vez.</p>
+
+      <div class="panel mb-6 max-w-3xl">
+        <div class="flex items-center gap-4 mb-3">
+          <input type="file" id="excel-file" accept=".xlsx, .xls" class="block flex-1 text-sm text-[var(--text-muted)] file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-[var(--acento)] file:text-white hover:file:brightness-110 cursor-pointer">
+          <button onclick="descargarPlantillaExcel()" class="btn btn-ghost btn-sm whitespace-nowrap">📥 Plantilla Excel</button>
+        </div>
+        <p class="field-hint">Descarga la plantilla para asegurarte de usar los encabezados correctos. Incluye todas las columnas de contacto usadas por cualquier marca.</p>
+      </div>
+
+      <div class="flex justify-between items-center max-w-4xl mb-4">
+        <h3 class="text-sm font-bold text-[var(--text-muted)] uppercase tracking-wide">Datos detectados</h3>
+        <button onclick="procesarExcelMasivo()" id="btn-procesar" class="btn btn-primary hidden">🚀 Generar y descargar .ZIP</button>
+      </div>
+
+      <div class="overflow-x-auto max-w-4xl panel !p-0">
+        <table class="w-full text-sm text-left">
+          <thead class="text-xs uppercase bg-[var(--bg-panel-2)] text-[var(--text-muted)]" id="tabla-excel-head"></thead>
+          <tbody id="tabla-excel" class="divide-y divide-[var(--border-soft)]"></tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+</div>
+
+<!-- Modal instrucciones -->
+<div id="modal-instrucciones" class="hidden modal-backdrop" onclick="if(event.target===this) this.classList.add('hidden')">
+  <div class="modal-card">
+    <button onclick="document.getElementById('modal-instrucciones').classList.add('hidden')" class="absolute top-4 right-4 text-[var(--text-muted)] hover:text-white text-lg font-bold leading-none">✕</button>
+    <h3 class="text-xl font-bold mb-1">¿Cómo instalar tu firma?</h3>
+    <p class="text-xs text-[var(--text-faint)] mb-5">Sigue los pasos según tu cliente de correo.</p>
+    <div class="space-y-5 text-sm text-slate-300">
+      <div>
+        <h4 class="font-bold mb-2" style="color:var(--acento)">Gmail</h4>
+        <ol class="list-decimal list-inside space-y-2">
+          <li>Abre Gmail → ⚙️ Configuración → Ver todos los ajustes.</li>
+          <li>En la pestaña "General", baja hasta "Firma".</li>
+          <li>Crea una firma nueva y pégala en el editor, luego inserta la imagen PNG descargada.</li>
+          <li>Ajusta el tamaño de la imagen a "Original" para no perder nitidez.</li>
+          <li>Guarda los cambios al final de la página.</li>
+        </ol>
+      </div>
+      <hr class="border-[var(--border-soft)]">
+      <div>
+        <h4 class="font-bold mb-2" style="color:var(--acento)">Outlook</h4>
+        <ol class="list-decimal list-inside space-y-2">
+          <li>Archivo → Opciones → Correo → Firmas.</li>
+          <li>Crea una firma nueva y ponle un nombre identificable.</li>
+          <li>Inserta la imagen PNG descargada con el ícono de imagen del editor.</li>
+          <li>Defínela como firma predeterminada para mensajes nuevos y respuestas.</li>
+          <li>Guarda y cierra.</li>
+        </ol>
+      </div>
+    </div>
+    <button onclick="document.getElementById('modal-instrucciones').classList.add('hidden')" class="btn btn-primary w-full justify-center mt-6">Entendido</button>
+  </div>
+</div>
+
+<script src="shared/firmas-core.js"></script>
+<script>
+"use strict";
+
+let config = {};
+let empresaActual = null;
+let datosMasivos = [];
+
+window.onload = async () => {
+  await document.fonts.ready.catch(() => {});
+  await cargarConfig();
+  cambiarTab('individual');
+};
+
+async function cargarConfig() {
+  const remoto = await FirmasCore.fetchDefaultConfig('./config_firmas.json');
+  config = remoto || FirmasCore.buildFallbackConfig();
+  llenarBrandPicker();
+}
+
+function llenarBrandPicker() {
+  const cont = document.getElementById('brand-picker');
+  const nombres = Object.keys(config);
+  empresaActual = nombres.includes(empresaActual) ? empresaActual : nombres[0];
+
+  cont.innerHTML = nombres.map(emp => {
+    const c = config[emp];
+    const bg = c.plantilla ? `background-image:url('${c.plantilla}')` : `background:#333`;
+    const activo = emp === empresaActual;
+    return `<button type="button" class="brand-option" role="radio" aria-pressed="${activo}" onclick="seleccionarEmpresa('${emp.replace(/'/g, "\\'")}')">
+      <span class="brand-swatch" style="${bg}"></span>${emp}
+    </button>`;
+  }).join('');
+
+  aplicarAcento();
+  renderCamposContactoDinamicos();
+  actualizarPreview();
+}
+
+function seleccionarEmpresa(emp) { empresaActual = emp; llenarBrandPicker(); }
+function aplicarAcento() {
+  const c = config[empresaActual];
+  document.documentElement.style.setProperty('--acento', (c && c.accent_ui) || '#96237A');
+}
+
+// ── Campos de contacto dinámicos (según lo que definió el admin) ────
+function filasDatoDeEmpresa(emp) {
+  const c = config[emp]; if (!c || !c.contacto) return [];
+  return c.contacto.filas.filter(f => f.activo !== false && f.modo === 'dato' && f.campo);
+}
+
+function renderCamposContactoDinamicos() {
+  const cont = document.getElementById('campos-contacto-dinamicos');
+  const filas = filasDatoDeEmpresa(empresaActual);
+  if (!filas.length) { cont.innerHTML = ''; return; }
+  cont.innerHTML = filas.map(f => `
+    <div class="${f.envolver && f.envolver.activo ? 'col-span-2' : ''}">
+      <label class="field-label" for="cc-${f.campo}">${f.etiqueta}${f.default ? '' : ' <span class="font-normal normal-case text-[var(--text-faint)]">(opcional)</span>'}</label>
+      <input type="text" id="cc-${f.campo}" class="field" placeholder="${f.default ? 'Default: ' + f.default : ''}" oninput="actualizarPreview()">
+    </div>`).join('');
+}
+
+// ── Navegación ────────────────────────────────────────────────────
+function cambiarTab(tab) {
+  document.querySelectorAll('.seccion').forEach(s => s.classList.remove('activa'));
+  document.querySelectorAll('.nav-btn').forEach(b => b.removeAttribute('aria-current'));
+  document.getElementById(`sec-${tab}`).classList.add('activa');
+  document.getElementById(`btn-${tab}`).setAttribute('aria-current', 'true');
+  if (tab === 'individual') actualizarPreview();
+}
+
+// ── Preview / descarga ───────────────────────────────────────────
+function datosContactoDesdeFormulario() {
+  const datos = {};
+  filasDatoDeEmpresa(empresaActual).forEach(f => {
+    const el = document.getElementById(`cc-${f.campo}`);
+    if (el) datos[f.campo] = el.value;
+  });
+  return datos;
+}
+
+async function actualizarPreview() {
+  const c = config[empresaActual]; if (!c) return;
+  const d = {
+    nom1: document.getElementById('in-nom1').value, nom2: document.getElementById('in-nom2').value,
+    pat: document.getElementById('in-pat').value, mat: document.getElementById('in-mat').value,
+    cargo: document.getElementById('in-cargo').value,
+    ...datosContactoDesdeFormulario(),
+  };
+  await FirmasCore.drawSignature(document.getElementById('preview-canvas'), d, c);
+}
+
+function descargarFirma() {
+  if (!validarCamposObligatorios()) return;
+  const cvs = document.getElementById('preview-canvas');
+  const n = (document.getElementById('in-nom1').value || document.getElementById('in-nom2').value).trim();
+  const p = (document.getElementById('in-pat').value || document.getElementById('in-mat').value).trim();
+  const link = document.createElement('a');
+  link.download = `${p}_${n}.png`;
+  link.href = cvs.toDataURL('image/png'); link.click();
+}
+
+async function copiarFirma() {
+  const cvs = document.getElementById('preview-canvas');
+  if (!cvs.width) { showToast('Nada que copiar aún.', 'error'); return; }
+  cvs.toBlob(async (blob) => {
+    try {
+      await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
+      showToast('¡Imagen copiada al portapapeles!');
+    } catch { showToast('Tu navegador no permite copiar imágenes directamente. Descarga el PNG.', 'error'); }
+  });
+}
+
+// ── Validación ────────────────────────────────────────────────────
+function limpiarError(input) {
+  const grupos = { 'in-nom1': ['in-nom1', 'in-nom2'], 'in-nom2': ['in-nom1', 'in-nom2'], 'in-pat': ['in-pat', 'in-mat'], 'in-mat': ['in-pat', 'in-mat'] };
+  (grupos[input.id] || []).forEach(id => document.getElementById(id).classList.remove('campo-error'));
+}
+function validarCamposObligatorios() {
+  const nom1 = document.getElementById('in-nom1').value.trim();
+  const nom2 = document.getElementById('in-nom2').value.trim();
+  const pat = document.getElementById('in-pat').value.trim();
+  const mat = document.getElementById('in-mat').value.trim();
+  let valido = true;
+  if (!nom1 && !nom2) { ['in-nom1', 'in-nom2'].forEach(id => document.getElementById(id).classList.add('campo-error')); valido = false; }
+  if (!pat && !mat) { ['in-pat', 'in-mat'].forEach(id => document.getElementById(id).classList.add('campo-error')); valido = false; }
+  if (!valido) showToast('Ingresa al menos un nombre y un apellido.', 'error');
+  return valido;
+}
+
+// ── Excel masivo ──────────────────────────────────────────────────
+const esc = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+function columnasContactoGlobales() {
+  return FirmasCore.camposDeDatosUsados(config); // ej: ['celular','telefono','direccion','web']
+}
+function etiquetaCampo(campo) {
+  for (const emp in config) {
+    const f = (config[emp].contacto?.filas || []).find(x => x.campo === campo);
+    if (f) return f.etiqueta;
+  }
+  return campo;
+}
+
+function descargarPlantillaExcel() {
+  const cols = ['Primer Nombre', 'Segundo Nombre', 'Apellido Paterno', 'Apellido Materno', 'Empresa', 'Cargo', ...columnasContactoGlobales().map(etiquetaCampo)];
+  const ws = XLSX.utils.aoa_to_sheet([cols]);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Firmas');
+  XLSX.writeFile(wb, 'Plantilla_Firmas.xlsx');
+}
+
+document.getElementById('excel-file').addEventListener('change', function (e) {
+  const file = e.target.files[0]; if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function (e) {
+    const data = new Uint8Array(e.target.result);
+    const workbook = XLSX.read(data, { type: 'array' });
+    const json = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]], { defval: '' });
+    const cols = columnasContactoGlobales();
+    datosMasivos = [];
+    json.forEach(row => {
+      const nr = {}; for (const k in row) nr[k.trim().toLowerCase()] = row[k];
+      let emp = nr['empresa'] || Object.keys(config)[0];
+      const f = Object.keys(config).find(x => x.toLowerCase() === String(emp).toLowerCase());
+      if (f) emp = f; else config[emp] = FirmasCore.deepClone(FirmasCore.TEMPLATE_EMP);
+      const registro = { nom1: nr['primer nombre'] || nr['nombre'] || '', nom2: nr['segundo nombre'] || '', pat: nr['apellido paterno'] || nr['paterno'] || '', mat: nr['apellido materno'] || nr['materno'] || '', cargo: nr['cargo'] || '', empresa: emp };
+      cols.forEach(campo => {
+        const etiqueta = etiquetaCampo(campo).toLowerCase();
+        registro[campo] = nr[campo.toLowerCase()] || nr[etiqueta] || '';
+      });
+      datosMasivos.push(registro);
+    });
+
+    document.getElementById('tabla-excel-head').innerHTML = `<tr><th class="p-3">Nom1</th><th class="p-3">Nom2</th><th class="p-3">Pat</th><th class="p-3">Mat</th><th class="p-3">Empresa</th><th class="p-3">Cargo</th>${cols.map(c => `<th class="p-3">${esc(etiquetaCampo(c))}</th>`).join('')}</tr>`;
+    let html = '';
+    datosMasivos.forEach(d => {
+      html += `<tr><td class="p-3">${esc(d.nom1)}</td><td class="p-3">${esc(d.nom2)}</td><td class="p-3">${esc(d.pat)}</td><td class="p-3">${esc(d.mat)}</td><td class="p-3">${esc(d.empresa)}</td><td class="p-3">${esc(d.cargo)}</td>${cols.map(c => `<td class="p-3">${esc(d[c] || '')}</td>`).join('')}</tr>`;
+    });
+    document.getElementById('tabla-excel').innerHTML = html;
+    document.getElementById('btn-procesar').classList.remove('hidden');
+  };
+  reader.readAsArrayBuffer(file);
+});
+
+async function procesarExcelMasivo() {
+  if (datosMasivos.length === 0) return;
+  const btn = document.getElementById('btn-procesar');
+  btn.innerText = 'Generando... ⏳'; btn.disabled = true;
+  const zip = new JSZip(); const tempCvs = document.createElement('canvas');
+  const nombresUsados = {};
+  for (const d of datosMasivos) {
+    await FirmasCore.drawSignature(tempCvs, d, config[d.empresa]);
+    const base64Data = tempCvs.toDataURL('image/png').replace(/^data:image\/(png|jpg);base64,/, '');
+    const carpeta = d.empresa;
+    const baseNombre = `${d.pat}_${d.nom1}`.replace(/\s+/g, '_').trim() || 'firma';
+    const clave = `${carpeta}/${baseNombre}`;
+    let nombreFinal;
+    if (nombresUsados[clave]) { nombresUsados[clave]++; nombreFinal = `${baseNombre}_${nombresUsados[clave]}`; }
+    else { nombresUsados[clave] = 1; nombreFinal = baseNombre; }
+    zip.folder(carpeta).file(`${nombreFinal}.png`, base64Data, { base64: true });
+  }
+  zip.generateAsync({ type: 'blob' }).then(function (content) {
+    const fecha = new Date().toISOString().slice(0, 10);
+    saveAs(content, `Firmas_Masivas_${fecha}.zip`);
+    btn.innerText = '🚀 Generar y descargar .ZIP'; btn.disabled = false;
+  });
+}
+
+// ── Utilidades ────────────────────────────────────────────────────
+function showToast(msg, tipo = 'success') {
+  const t = document.createElement('div');
+  t.className = `toast toast-${tipo}`; t.textContent = msg;
+  document.body.appendChild(t);
+  requestAnimationFrame(() => t.classList.add('visible'));
+  setTimeout(() => { t.classList.remove('visible'); setTimeout(() => t.remove(), 300); }, 3500);
+}
+</script>
+</body>
+</html>
