@@ -649,6 +649,35 @@ function actualizarFilaEnvolver(id, patch) {
   Object.assign(fila.envolver, patch);
   render();
 }
+function actualizarAnchoFila(id, val) {
+  let v = parseInt(val); if (Number.isNaN(v)) return;
+  const sl = document.getElementById(`sl-ancho-${id}`), num = document.getElementById(`num-ancho-${id}`);
+  if (sl) sl.value = v; if (num) num.value = v;
+  actualizarFilaEnvolver(id, { max_ancho_px: v });
+}
+
+// Guía vertical temporal que marca dónde corta el ancho del contenedor
+// mientras se arrastra su slider — así se ve exactamente el límite antes
+// de soltar, en vez de adivinar el número.
+let guiaAnchoActiva = null;
+function mostrarGuiaAncho(id) { guiaAnchoActiva = id; render(); }
+function ocultarGuiaAncho() { guiaAnchoActiva = null; render(); }
+function pintarGuiaAncho() {
+  if (!guiaAnchoActiva) return;
+  const c = config[empresaActual];
+  const fila = (c.contacto.filas || []).find(f => f.id === guiaAnchoActiva);
+  if (!fila || !fila.envolver.activo) return;
+  const anchor = c.contacto.anchor;
+  const textX = anchor.pos[0] + (fila.icono ? anchor.icon_size + anchor.gap_icono_texto : 0);
+  const boundaryX = textX + fila.envolver.max_ancho_px;
+  const overlay = document.getElementById('drag-overlay');
+  const g = document.createElement('div');
+  g.className = 'guide-line guide-v';
+  g.style.background = '#f59e0b';
+  g.style.left = (boundaryX * zoom) + 'px';
+  g.style.height = overlay.style.height;
+  overlay.appendChild(g);
+}
 function subirIconoFila(e, id) {
   const f = e.target.files[0]; if (!f) return;
   const r = new FileReader();
@@ -710,14 +739,15 @@ function renderFilasUI() {
         Envolver en varias líneas
       </label>
       ${f.envolver.activo ? `
-      <div class="grid grid-cols-2 gap-2">
-        <div>
-          <label class="field-label !text-[9px]">Ancho máx (px)</label>
-          <input type="number" class="field mini-field" value="${f.envolver.max_ancho_px}" oninput="actualizarFilaEnvolver('${f.id}', {max_ancho_px: parseInt(this.value)||150})" onchange="Historia.push()">
-        </div>
-        <div>
-          <label class="field-label !text-[9px]">Máx líneas</label>
-          <input type="number" class="field mini-field" value="${f.envolver.max_lineas}" min="1" max="5" oninput="actualizarFilaEnvolver('${f.id}', {max_lineas: parseInt(this.value)||2})" onchange="Historia.push()">
+      <div class="mt-1">
+        <label class="field-label flex justify-between">Ancho del contenedor (px)<span class="text-[var(--acento)] font-bold normal-case"><input class="num-field" id="num-ancho-${f.id}" value="${f.envolver.max_ancho_px}" oninput="actualizarAnchoFila('${f.id}', this.value)" onchange="Historia.push()"></span></label>
+        <input type="range" id="sl-ancho-${f.id}" min="20" max="600" step="1" value="${f.envolver.max_ancho_px}"
+          oninput="actualizarAnchoFila('${f.id}', this.value)" onchange="Historia.push()"
+          onfocus="mostrarGuiaAncho('${f.id}')" onblur="ocultarGuiaAncho()"
+          onpointerdown="mostrarGuiaAncho('${f.id}')" onpointerup="ocultarGuiaAncho()">
+        <div class="flex items-center justify-between mt-2">
+          <label class="field-label !text-[9px] !mb-0">Máx líneas</label>
+          <input type="number" class="num-field" style="width:44px" value="${f.envolver.max_lineas}" min="1" max="5" oninput="actualizarFilaEnvolver('${f.id}', {max_lineas: parseInt(this.value)||2})" onchange="Historia.push()">
         </div>
       </div>` : ''}
     </div>`;
@@ -766,6 +796,7 @@ async function render() {
   document.getElementById('canvas-dims').textContent = `${canvasW}×${canvasH}px @ ${Math.round(zoom * 100)}%`;
 
   buildOverlay(layout, canvasW, canvasH);
+  pintarGuiaAncho();
   if (document.getElementById('chk-rulers').checked) buildRulers(canvasW, canvasH);
   else { document.getElementById('ruler-h').innerHTML = ''; document.getElementById('ruler-v').innerHTML = ''; }
 }
