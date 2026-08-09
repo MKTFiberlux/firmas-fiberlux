@@ -1,6 +1,6 @@
 {
   "Fiberlux": {
-    "plantilla": "assets/plantillas/fiberlux/normal.png",
+    "plantilla": "assets/plantillas/fiberlux/normal-1786236422638.png",
     "color_texto": "#FFFFFF",
     "font_family": "'Poppins', Arial, sans-serif",
     "accent_ui": "#96237A",
@@ -105,8 +105,8 @@
     }
   },
   "Fiberlux Negocios": {
-    "plantilla": "assets/plantillas/fiberlux-negocios/normal.png",
-    "color_texto": "#992b7f",
+    "plantilla": "assets/plantillas/fiberlux-negocios/normal-1786236424577.png",
+    "color_texto": "#5c5c5c",
     "font_family": "'Poppins', Arial, sans-serif",
     "accent_ui": "#992b7f",
     "style_nombre": {
@@ -210,10 +210,10 @@
     }
   },
   "Nextnet": {
-    "plantilla": "assets/plantillas/nextnet/normal.png",
+    "plantilla": "assets/plantillas/nextnet/normal-1786236425716.png",
     "color_texto": "#022c32",
-    "font_family": "'Gilmer', 'Segoe UI', Arial, sans-serif",
-    "accent_ui": "#13DDA3",
+    "font_family": "'Poppins', Arial, sans-serif",
+    "accent_ui": "#13dda3",
     "style_nombre": {
       "pos": [
         43,
@@ -307,7 +307,7 @@
           "activo": true,
           "envolver": {
             "activo": true,
-            "max_ancho_px": 170,
+            "max_ancho_px": 204,
             "max_lineas": 2
           }
         }
@@ -315,7 +315,7 @@
     }
   },
   "Grupo FLX": {
-    "plantilla": "assets/plantillas/grupo-flx/normal.png",
+    "plantilla": "assets/plantillas/grupo-flx/normal-1786236426838.png",
     "color_texto": "#FFFFFF",
     "font_family": "'Poppins', Arial, sans-serif",
     "accent_ui": "#96237A",
